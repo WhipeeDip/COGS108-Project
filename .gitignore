@@ -107,3 +107,4 @@ venv.bak/
 *.code-workspace
 .vscode/
 .idea/
+Notes.txt
