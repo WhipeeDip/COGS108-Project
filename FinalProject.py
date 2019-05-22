@@ -241,12 +241,31 @@ legend_list_smogon = [str.title(name) for name in legend_list_smogon]
 
 try:
   legend_list_smogon.remove('Tapu-Koko')
-  legend_list_smogon.remove('Tapu-Lele')
-  legend_list_smogon.remove('Tapu-Bulu')
-  legend_list_smogon.remove('Tapu-Fini')
-  legend_list_smogon.remove('Type-Null')
+  legend_list_smogon.extend(['TapuKoko'])
+except ValueError:
+  print('Error')
 
-  legend_list_smogon.extend(['TapuKoko', 'TapuLele', 'TapuBulu', 'TapuFini', 'Type:Null'])
+try:
+  legend_list_smogon.remove('Tapu-Lele')
+  legend_list_smogon.extend(['TapuLele'])
+except ValueError:
+  print('Error')
+
+try:
+  legend_list_smogon.remove('Tapu-Bulu')
+  legend_list_smogon.extend(['TapuBulu'])
+except ValueError:
+  print('Error')
+
+try:
+  legend_list_smogon.remove('Tapu-Fini')
+  legend_list_smogon.extend(['TapuFini'])
+except ValueError:
+  print('Error')
+
+try:
+  legend_list_smogon.remove('Type-Null')
+  legend_list_smogon.extend(['Type:Null'])
 except ValueError:
   print('Error')
 
