@@ -288,6 +288,9 @@ ax_smogon_usage.set_xlabel('Type')
 ax_smogon_usage.set_ylabel('Raw Usage')
 plt.show()
 
+#%% [markdown]
+# write about overall legendary > normal
+
 # plot raw usage against rank
 plt.scatter(smogon_df['Rank'], smogon_df['Raw'])
 plt.title('Smogon Ubers Rank vs. Raw Usage')
@@ -295,6 +298,9 @@ plt.xlabel('Rank')
 plt.ylabel('Raw Usage')
 plt.xticks([0, *range(99, len(smogon_df), 100)])
 plt.show()
+
+#%% [markdown]
+# write about exponential and the need to look at top x%
 
 # get the makeup of the top x% used
 smogon_top_count = math.ceil(len(smogon_df) * 0.1) # used for the cutoffs
@@ -310,6 +316,9 @@ ax_smogon_num = smogon_num_graph_df.plot.bar(x = 'Type', y = 'Count', title = 'S
 ax_smogon_num.set_xlabel('Type')
 ax_smogon_num.set_ylabel('Number')
 plt.show()
+
+#%% [markdown]
+# write about top x% results
 
 
 #%% [markdown]
