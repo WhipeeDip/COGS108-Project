@@ -33,6 +33,7 @@ rayquaza.stats
 #%%
 from urllib.request import urlopen
 import json
+import pandas as pd
 
 data = urlopen("https://www.smogon.com/stats/2019-03/gen7ubers-0.txt")
 usage = []
@@ -49,34 +50,24 @@ for line in data:
     decodedList.pop() # remove real %
     usage.append(decodedList)
 
-
-#%%
-usage
-
-#%% [markdown]
-# ## Use pandas to visualize Smogon competitive usage data
-
-#%%
-import pandas as pd
-
-
-#%%
+# real - actually used in battle
+# raw - unweighted usage (on team)
+# usage - weighted based on matchmaking rating
 smogon_df = pd.DataFrame(usage[1:], columns=usage[0])
 smogon_df
-
-# usage - weighted based on matchmaking rating
-# raw - unweighted usage (on team)
-# real - actually used in battle
 
 
 #%%
 statsDic = {}
 for pokemon in smogon_df['Pokemon']:
-  pokemon_stats = []
-  pokemon_info = pb.pokemon(pokemon.lower())
-  for i in (pokemon_info.stats):
-    pokemon_stats.append(str(i)[14:17])
-  statsDic[pokemon] = pokemon_stats
+  try:
+    pokemon_stats = []
+    pokemon_info = pb.pokemon(pokemon.lower())
+    for i in (pokemon_info.stats):
+      pokemon_stats.append(str(i)[14:17])
+    statsDic[pokemon] = pokemon_stats
+  except ValueError:
+    print("Cannot find ", pokemon)
 
 #%% [markdown]
 # ## Obtain list of legendary and mystical pokemon from Bulbapedia
@@ -90,13 +81,14 @@ page = requests.get("https://bulbapedia.bulbagarden.net/wiki/Legendary_Pok%C3%A9
 soup = BeautifulSoup(page.content, 'html.parser')
 
 # list of <a> tags of legendary pokemon
-a_list = soup.select('td a[title*=(Pokémon)]')
+a_list = soup.select('td[style*="background: #e6e6ff"] a')
 
 # extract text from <a> tags
 legend_list = [lp.get_text() for lp in a_list]
 
 # data cleaning: replace whitespace with hyphen, remove colon
 legend_list = [p.lower().replace(' ', '-').replace(':', '') for p in legend_list]
+legend_list_smogon = legend_list.copy()
 legend_list
 
 #%% [markdown]
@@ -224,6 +216,40 @@ try:
 except ValueError:
   print('Error')
 
+
+#%% handle special cases for smogon pokemon name list
+
+legend_list_smogon.extend(['deoxys-attack', 'deoxys-defense', 'deoxys-speed'])
+legend_list_smogon.extend(['giratina-origin'])
+legend_list_smogon.extend(['shaymin-sky'])
+legend_list_smogon.extend(['tornadus-therian'])
+legend_list_smogon.extend(['thundurus-therian'])
+legend_list_smogon.extend(['landorus-therian'])
+
+try:
+  legend_list_smogon.remove('meltan')
+except ValueError:
+  print('Error')
+
+try:
+  legend_list_smogon.remove('melmetal')
+except ValueError:
+  print('Error')
+
+# smogon pokemon names are captialized
+legend_list_smogon = [str.title(name) for name in legend_list_smogon]
+
+try:
+  legend_list_smogon.remove('Tapu-Koko')
+  legend_list_smogon.remove('Tapu-Lele')
+  legend_list_smogon.remove('Tapu-Bulu')
+  legend_list_smogon.remove('Tapu-Fini')
+  legend_list_smogon.remove('Type-Null')
+
+  legend_list_smogon.extend(['TapuKoko', 'TapuLele', 'TapuBulu', 'TapuFini', 'Type:Null'])
+except ValueError:
+  print('Error')
+
 #%% [markdown]
 # ## Test again for validity
 
@@ -233,6 +259,67 @@ for p in legend_list:
     pb.pokemon(p)
   except ValueError:
     print("Cannot find", p)
+
+#%% separate dataframe into legendary and normal and graph
+import math
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# print(len(legend_list_smogon)) = 76
+
+# convert string to floats
+smogon_df['Raw'] = smogon_df['Raw'].astype(int)
+
+# using legend_list_smogon, split dataframe
+smogon_legend_df = smogon_df[smogon_df['Pokemon'].str.contains('|'.join(legend_list_smogon))].copy()
+smogon_legend_df['Rank'] = smogon_legend_df['Rank'].astype(int)
+smogon_normal_df = smogon_df[-smogon_df['Pokemon'].str.contains('|'.join(legend_list_smogon))].copy()
+smogon_normal_df['Rank'] = smogon_normal_df['Rank'].astype(int)
+
+# plot raw usage of legendaries vs normal
+smogon_usage_graph_data = [
+  ['Legendaries', smogon_legend_df['Raw'].sum()],
+  ['Normal', smogon_normal_df['Raw'].sum()]
+]
+smogon_usage_graph_df = pd.DataFrame(smogon_usage_graph_data, columns = ['Type', 'Raw Usage'])
+ax_smogon_usage = smogon_usage_graph_df.plot.bar(x = 'Type', y = 'Raw Usage', title = 'Smogon Ubers Overall Raw Usage',
+  legend = False, color = ['orange', 'blue'])
+ax_smogon_usage.set_xlabel('Type')
+ax_smogon_usage.set_ylabel('Raw Usage')
+plt.show()
+
+#%% [markdown]
+# write about overall legendary > normal
+
+# plot raw usage against rank
+plt.scatter(smogon_df['Rank'], smogon_df['Raw'])
+plt.title('Smogon Ubers Rank vs. Raw Usage')
+plt.xlabel('Rank')
+plt.ylabel('Raw Usage')
+plt.xticks([0, *range(99, len(smogon_df), 100)])
+plt.show()
+
+#%% [markdown]
+# write about exponential and the need to look at top x%
+
+# get the makeup of the top x% used
+smogon_top_count = math.ceil(len(smogon_df) * 0.1) # used for the cutoffs
+smogon_num_legend = (smogon_legend_df[smogon_legend_df['Rank'] <= smogon_top_count])['Rank'].size
+smogon_num_normal = (smogon_normal_df[smogon_normal_df['Rank'] <= smogon_top_count])['Rank'].size
+smogon_num_graph_data = [
+  ['Legendaries ({})'.format(smogon_num_legend), smogon_num_legend],
+  ['Normal ({})'.format(smogon_num_normal), smogon_num_normal]
+]
+smogon_num_graph_df = pd.DataFrame(smogon_num_graph_data, columns = ['Type', 'Count'])
+ax_smogon_num = smogon_num_graph_df.plot.bar(x = 'Type', y = 'Count', title = 'Smogon Ubers Top 10% ({}) Used Composition'.format(smogon_top_count),
+  legend = False, color = ['orange', 'blue'])
+ax_smogon_num.set_xlabel('Type')
+ax_smogon_num.set_ylabel('Number')
+plt.show()
+
+#%% [markdown]
+# write about top x% results
+
 
 #%% [markdown]
 # ## Obtain list of types
