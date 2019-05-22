@@ -261,43 +261,55 @@ for p in legend_list:
     print("Cannot find", p)
 
 #%% separate dataframe into legendary and normal and graph
-# import numpy as np
-# import matplotlib.pyplot as plt
+import math
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# print(len(legend_list_smogon)) = 76
 
 # convert string to floats
 smogon_df['Raw'] = smogon_df['Raw'].astype(int)
 
 # using legend_list_smogon, split dataframe
-smogon_legend_df = smogon_df[smogon_df['Pokemon'].str.contains('|'.join(legend_list_smogon))]
+smogon_legend_df = smogon_df[smogon_df['Pokemon'].str.contains('|'.join(legend_list_smogon))].copy()
 smogon_legend_df['Rank'] = smogon_legend_df['Rank'].astype(int)
-smogon_normal_df = smogon_df[-smogon_df['Pokemon'].str.contains('|'.join(legend_list_smogon))]
+smogon_normal_df = smogon_df[-smogon_df['Pokemon'].str.contains('|'.join(legend_list_smogon))].copy()
 smogon_normal_df['Rank'] = smogon_normal_df['Rank'].astype(int)
 
-# get usage of top ten of legend/normal, then rest
-# smogon_total_raw = smogon_df['Raw'].sum()
-smogon_top_count = 30 # used for the cutoffs in graphs below
-smogon_top_legend = (smogon_legend_df.head(smogon_top_count))['Raw'].sum()
-smogon_rest_legend = (smogon_legend_df.tail(smogon_legend_df.size - smogon_top_count))['Raw'].sum()
-smogon_top_normal = (smogon_normal_df.head(smogon_top_count))['Raw'].sum()
-smogon_rest_normal = (smogon_normal_df.tail(smogon_normal_df.size - smogon_top_count))['Raw'].sum()
+# plot raw usage of legendaries vs normal
 smogon_usage_graph_data = [
-  ['Top {} Legendaries'.format(smogon_top_count), smogon_top_legend],
-  ['Top {} Non-Legendaries'.format(smogon_top_count), smogon_top_normal],
-  ['Rest of Legendaries', smogon_rest_legend],
-  ['Rest of Non-Legendaries', smogon_rest_normal]
+  ['Legendaries', smogon_legend_df['Raw'].sum()],
+  ['Normal', smogon_normal_df['Raw'].sum()]
 ]
 smogon_usage_graph_df = pd.DataFrame(smogon_usage_graph_data, columns = ['Type', 'Raw Usage'])
-smogon_usage_graph_df.plot.bar(x = 'Type', y = 'Raw Usage', title = 'Smogon Ubers Raw Usage', legend = False)
+ax_smogon_usage = smogon_usage_graph_df.plot.bar(x = 'Type', y = 'Raw Usage', title = 'Smogon Ubers Overall Raw Usage',
+  legend = False, color = ['orange', 'blue'])
+ax_smogon_usage.set_xlabel('Type')
+ax_smogon_usage.set_ylabel('Raw Usage')
+plt.show()
 
-# get the makeup of the top 30 used
+# plot raw usage against rank
+plt.scatter(smogon_df['Rank'], smogon_df['Raw'])
+plt.title('Smogon Ubers Rank vs. Raw Usage')
+plt.xlabel('Rank')
+plt.ylabel('Raw Usage')
+plt.xticks([0, *range(99, len(smogon_df), 100)])
+plt.show()
+
+# get the makeup of the top x% used
+smogon_top_count = math.ceil(len(smogon_df) * 0.1) # used for the cutoffs
 smogon_num_legend = (smogon_legend_df[smogon_legend_df['Rank'] <= smogon_top_count])['Rank'].size
 smogon_num_normal = (smogon_normal_df[smogon_normal_df['Rank'] <= smogon_top_count])['Rank'].size
 smogon_num_graph_data = [
-  ['# of Legendaries', smogon_num_legend],
-  ['# of Normal', smogon_num_normal]
+  ['Legendaries ({})'.format(smogon_num_legend), smogon_num_legend],
+  ['Normal ({})'.format(smogon_num_normal), smogon_num_normal]
 ]
 smogon_num_graph_df = pd.DataFrame(smogon_num_graph_data, columns = ['Type', 'Count'])
-smogon_num_graph_df.plot.bar(x = 'Type', y = 'Count', title = 'Top {} Used Composition'.format(smogon_top_count), legend = False, yticks = range(0, smogon_top_count, 5))
+ax_smogon_num = smogon_num_graph_df.plot.bar(x = 'Type', y = 'Count', title = 'Smogon Ubers Top 10% ({}) Used Composition'.format(smogon_top_count),
+  legend = False, color = ['orange', 'blue'])
+ax_smogon_num.set_xlabel('Type')
+ax_smogon_num.set_ylabel('Number')
+plt.show()
 
 
 #%% [markdown]
